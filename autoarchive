@@ -1,0 +1,20 @@
+#!/usr/bin/bash
+
+. ~/autoarchive.conf
+
+for D in $(find $WatchPath -mindepth 1 -maxdepth 1 -type d)
+do
+	filename=$ArchiveLocation$(echo $D | tail -c +2 | sed s#/#_#g).tgz
+	tar -zcvf $filename $D
+	if [ $CloudBK -eq 1 ]
+        then
+          case $RestoreMode in
+            G|g)
+	      nohup gsutil mv $filename gs://$CloudBucket/$CloudPath > /dev/null &
+          esac
+	fi
+done
+if [ $RunPostAction -eq 1 ]
+then
+  $($PostAction)
+fi
