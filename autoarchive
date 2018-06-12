@@ -5,21 +5,23 @@
 Run=0
 for D in $(find $WatchPath -mindepth 1 -maxdepth 1 -type d)
 do
-	filename=$ArchiveLocation$(echo $D | tail -c +2 | sed s#/#_#g).tgz
-	tar -zcvf $filename $D
-	Run=1
-	if [ $CloudBK -eq 1 ]
+        filename=$ArchiveLocation$(echo $D | tail -c +2 | sed s#/#_#g).tgz
+        tar -zcvf $filename $D
+        Run=1
+        rm -rf $D
+        if [ $CloudBK -eq 1 ]
         then
-          case $RestoreMode in
+          case $CloudType in
             G|g)
-	      nohup gsutil mv $filename gs://$CloudBucket/$CloudPath > /dev/null &
+              nohup gsutil mv $filename gs://$CloudBucket/$CloudPath > /dev/null &
+              ;;
           esac
-	fi
+        fi
 done
 if [ $Run -eq 1 ]
 then
   if [ $RunPostAction -eq 1 ]
   then
-    nohup $($PostAction) > /dev/null &
+    nohup $PostAction > /dev/null &
   fi
 fi
