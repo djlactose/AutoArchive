@@ -1,11 +1,13 @@
 #!/usr/bin/bash
 
-. ~/autoarchive.conf
+. /etc/autoarchive/autoarchive.conf
 
+Run=0
 for D in $(find $WatchPath -mindepth 1 -maxdepth 1 -type d)
 do
 	filename=$ArchiveLocation$(echo $D | tail -c +2 | sed s#/#_#g).tgz
 	tar -zcvf $filename $D
+	Run=1
 	if [ $CloudBK -eq 1 ]
         then
           case $RestoreMode in
@@ -14,7 +16,10 @@ do
           esac
 	fi
 done
-if [ $RunPostAction -eq 1 ]
+if [ $Run -eq 1 ]
 then
-  $($PostAction)
+  if [ $RunPostAction -eq 1 ]
+  then
+    nohup $($PostAction) > /dev/null &
+  fi
 fi
