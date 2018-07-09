@@ -3,33 +3,35 @@
 . /etc/autoarchive/autoarchive.conf
 
 Run=0
-for D in $(find $WatchPath -mindepth 1 -maxdepth 1 -type d)
-do
-  filename=$ArchiveLocation$(echo $D | tail -c +2 | sed s#/#_#g).tgz
-  if [ Encrypt -eq 1 ]
+if [ -d $WatchPath ]; then
+  for D in $(find $WatchPath -mindepth 1 -maxdepth 1 -type d)
+  do
+    filename=$ArchiveLocation$(echo $D | tail -c +2 | sed s#/#_#g).tgz
+    if [ Encrypt -eq 1 ]
+    then
+      echo $EncryptPass > /etc/autoarchive/.encrypt_pass
+      filename=$filename.gpg
+      tar -cz $D | gpg --batch --passphrase-file=/etc/autoarchive/.encrypt_pass -c -o $filename
+      rm /etc/autoarchive/.encrypt_pass
+    else
+      tar -zcf $filename $D
+    fi
+    Run=1
+    rm -rf $D
+    if [ $CloudBK -eq 1 ]
+    then
+      case $CloudType in
+        G|g)
+          nohup gsutil mv $filename gs://$CloudBucket/$CloudPath > /dev/null &
+          ;;
+      esac
+    fi
+  done
+  if [ $Run -eq 1 ]
   then
-    echo $EncryptPass > /etc/autoarchive/.encrypt_pass
-    filename=$filename.gpg
-    tar -cz $D | gpg --batch --passphrase-file=/etc/autoarchive/.encrypt_pass -c -o $filename
-    rm /etc/autoarchive/.encrypt_pass
-  else
-    tar -zcf $filename $D
-  fi
-  Run=1
-  rm -rf $D
-  if [ $CloudBK -eq 1 ]
-  then
-    case $CloudType in
-      G|g)
-        nohup gsutil mv $filename gs://$CloudBucket/$CloudPath > /dev/null &
-        ;;
-    esac
-  fi
-done
-if [ $Run -eq 1 ]
-then
-  if [ $RunPostAction -eq 1 ]
-  then
-    nohup $PostAction > /dev/null &
+    if [ $RunPostAction -eq 1 ]
+    then
+      nohup $PostAction > /dev/null &
+    fi
   fi
 fi
